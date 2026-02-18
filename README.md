@@ -1,4 +1,4 @@
-# 🧠 AI Document Intelligence System
+# 🧠 AI Document Intelligence System (This project is just a part of an upcoming bigger project)
 
 > **Ask questions about your documents using AI-powered Retrieval-Augmented Generation (RAG)**
 
