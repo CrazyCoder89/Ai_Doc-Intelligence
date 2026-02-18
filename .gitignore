@@ -1,0 +1,29 @@
+# Virtual Environment - DO NOT UPLOAD
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# HuggingFace model cache
+.cache/
+
+# Data files (user uploads)
+data/raw/*.pdf
+data/vector_store/
+data/processed/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

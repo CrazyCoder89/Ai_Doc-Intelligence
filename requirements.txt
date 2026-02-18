@@ -1,0 +1,8 @@
+Fitz ==1.22.0
+PyMuPDF ==1.22.0
+faiss-cpu ==1.7.3  
+numpy ==2.0.0
+sentence-transformers ==2.2.2
+reportlab ==3.6.12
+ollama ==0.1.0
+streamlit ==1.25.0
