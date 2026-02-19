@@ -68,7 +68,7 @@ def generate_answer(question: str, retrieved_chunks: list) -> dict:
     }
     
     payload = {
-        "model": "mixtral-8x7b-32768",
+        "model": "llama-3.3-70b-versatile",
         "messages": [
             {"role": "user", "content": prompt}
         ],
