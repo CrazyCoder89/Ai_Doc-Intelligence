@@ -62,8 +62,10 @@ def generate_answer(question: str, retrieved_chunks: list) -> dict:
     
     print("\n--- Calling Hugging Face API ---")
     
-    # Use Mistral-7B-Instruct via Hugging Face
-    API_URL = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"    headers = {
+    # Use Mixtral via Hugging Face
+    API_URL = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
+    
+    headers = {
         "Authorization": f"Bearer {api_token}",
         "Content-Type": "application/json"
     }
