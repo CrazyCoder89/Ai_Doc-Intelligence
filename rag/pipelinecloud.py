@@ -9,7 +9,18 @@ from anthropic import Anthropic
 from config import TOP_K_RESULTS
 
 # Initialize Anthropic client
-client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+# Get API key from Streamlit secrets or environment
+import streamlit as st
+
+try:
+    api_key = st.secrets["ANTHROPIC_API_KEY"]
+except:
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+
+if not api_key:
+    raise ValueError("ANTHROPIC_API_KEY not found in secrets or environment variables")
+
+client = Anthropic(api_key=api_key)
 
 
 def build_context(retrieved_chunks: list) -> str:
