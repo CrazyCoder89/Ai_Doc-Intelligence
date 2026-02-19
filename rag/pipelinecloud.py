@@ -37,9 +37,9 @@ ANSWER:"""
 
 
 def generate_answer(question: str, retrieved_chunks: list) -> dict:
-    """Generate answer using Claude API (cloud deployment)"""
+    """Generate answer using Claude API via direct HTTP request"""
     import streamlit as st
-    from anthropic import Anthropic
+    import requests
     
     print(f"\nGenerating answer for: '{question}'")
     
@@ -52,29 +52,38 @@ def generate_answer(question: str, retrieved_chunks: list) -> dict:
     if not api_key:
         raise ValueError("ANTHROPIC_API_KEY not found!")
     
-    # Initialize client here (not at module level)
-    # Initialize client with explicit parameters only
-    client = Anthropic(
-        api_key=api_key,
-        max_retries=2,
-        timeout=60.0
-    )
-    
     # Build context
     context = build_context(retrieved_chunks)
     prompt = create_prompt(question, context)
     
     print("\n--- Calling Claude API ---")
     
-    # Call Anthropic Claude API
-    response = client.messages.create(
-        model="claude-3-5-sonnet-20241022",
-        max_tokens=1024,
-        temperature=0.2,
-        messages=[{"role": "user", "content": prompt}]
+    # Direct HTTP request to Anthropic API
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json"
+    }
+    
+    payload = {
+        "model": "claude-3-5-sonnet-20241022",
+        "max_tokens": 1024,
+        "temperature": 0.2,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }
+    
+    response = requests.post(
+        "https://api.anthropic.com/v1/messages",
+        headers=headers,
+        json=payload
     )
     
-    answer = response.content[0].text
+    response.raise_for_status()
+    result = response.json()
+    
+    answer = result['content'][0]['text']
     
     # Extract sources
     sources = []
