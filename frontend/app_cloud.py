@@ -1,3 +1,4 @@
+# frontend/app_cloud.py
 # Cloud deployment version
 
 import sys
@@ -22,6 +23,7 @@ st.set_page_config(
     layout="wide"
 )
 
+# Check for API key
 if not os.getenv("GROQ_API_KEY"):
     try:
         _ = st.secrets["GROQ_API_KEY"]
@@ -66,33 +68,59 @@ with st.sidebar:
                     all_chunks = []
                     processed_names = []
                     
+                    st.info(f"Found {len(uploaded_files)} file(s) to process...")
+                    
                     for uploaded_file in uploaded_files:
+                        st.info(f"Processing: {uploaded_file.name} ({uploaded_file.size / 1024:.1f} KB)")
+                        
+                        # Check file size (limit to 10MB)
+                        if uploaded_file.size > 10 * 1024 * 1024:
+                            st.error(f"❌ {uploaded_file.name} is too large (max 10MB)")
+                            continue
+                        
                         # Save file
                         file_path = os.path.join(RAW_DIR, uploaded_file.name)
                         with open(file_path, "wb") as f:
                             f.write(uploaded_file.getbuffer())
                         
+                        st.success(f"✅ Saved {uploaded_file.name}")
+                        
                         # Process
+                        st.info(f"Extracting text from {uploaded_file.name}...")
                         pages = load_pdf(file_path)
+                        st.success(f"✅ Extracted {len(pages)} pages")
+                        
+                        st.info("Chunking text...")
                         chunks = chunk_pages(pages)
+                        st.success(f"✅ Created {len(chunks)} chunks")
+                        
                         all_chunks.extend(chunks)
                         processed_names.append(uploaded_file.name)
                     
-                    # Embed
-                    embedded_chunks = embed_chunks(all_chunks)
-                    
-                    # Build index
-                    vector_store = VectorStore()
-                    vector_store.add_chunks(embedded_chunks)
-                    vector_store.save_to_disk()
-                    
-                    st.session_state.vector_store = vector_store
-                    st.session_state.processed_files = processed_names
-                    
-                    st.success(f"✅ Processed {len(processed_names)} document(s)!")
+                    if not all_chunks:
+                        st.error("No valid documents to process")
+                    else:
+                        # Embed
+                        st.info(f"Generating embeddings for {len(all_chunks)} chunks...")
+                        embedded_chunks = embed_chunks(all_chunks)
+                        st.success("✅ Embeddings generated")
+                        
+                        # Build index
+                        st.info("Building vector index...")
+                        vector_store = VectorStore()
+                        vector_store.add_chunks(embedded_chunks)
+                        vector_store.save_to_disk()
+                        st.success("✅ Vector index created")
+                        
+                        st.session_state.vector_store = vector_store
+                        st.session_state.processed_files = processed_names
+                        
+                        st.success(f"🎉 Successfully processed {len(processed_names)} document(s)!")
                     
                 except Exception as e:
-                    st.error(f"Error: {str(e)}")
+                    st.error(f"❌ Error: {str(e)}")
+                    import traceback
+                    st.error(f"Details: {traceback.format_exc()}")
         else:
             st.warning("Please upload at least one PDF")
     
@@ -169,4 +197,4 @@ else:
 
 
 st.divider()
-st.caption("Built with Streamlit | Powered by Claude API + FAISS | Deployed on Cloud")
+st.caption("Built with Streamlit | Powered by Groq + FAISS | Deployed on Cloud")
