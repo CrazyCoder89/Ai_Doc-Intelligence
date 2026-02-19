@@ -23,9 +23,12 @@ st.set_page_config(
 )
 
 # Check for API key
-if not os.getenv("ANTHROPIC_API_KEY"):
-    st.error("⚠️ ANTHROPIC_API_KEY not found! Please add it to Streamlit secrets.")
-    st.stop()
+if not os.getenv("HUGGINGFACE_API_TOKEN"):
+    try:
+        _ = st.secrets["HUGGINGFACE_API_TOKEN"]
+    except:
+        st.error("⚠️ HUGGINGFACE_API_TOKEN not found! Please add it to Streamlit secrets.")
+        st.stop()
 
 # Title
 st.title("📄 AI Document Intelligence System")
