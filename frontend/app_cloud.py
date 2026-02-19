@@ -1,5 +1,5 @@
 # frontend/app_cloud.py
-# Cloud deployment version
+# Cloud deployment version - Mobile optimized
 
 import sys
 import os
@@ -18,7 +18,7 @@ from config import RAW_DIR, VECTOR_STORE_DIR
 
 # Page config
 st.set_page_config(
-    page_title="AI Document Intelligence (Cloud)",
+    page_title="AI Document Intelligence",
     page_icon="📄",
     layout="wide"
 )
@@ -33,7 +33,7 @@ if not os.getenv("GROQ_API_KEY"):
 
 # Title
 st.title("📄 AI Document Intelligence System")
-st.markdown("*Ask questions about your documents with AI-powered RAG (Cloud Version)*")
+st.markdown("*Ask questions about your documents with AI-powered RAG*")
 st.divider()
 
 
@@ -48,86 +48,76 @@ if 'processed_files' not in st.session_state:
 
 # Sidebar for file upload
 with st.sidebar:
-    st.header("📁 Upload Documents")
+    st.header("📁 Upload Document")
     
-    uploaded_files = st.file_uploader(
-        "Choose PDF files",
+    # Single file upload for better mobile support
+    uploaded_file = st.file_uploader(
+        "Choose ONE PDF file",
         type=['pdf'],
-        accept_multiple_files=True,
-        help="Upload one or more PDF documents to ask questions about"
+        accept_multiple_files=False,
+        help="Upload a PDF document (max 10MB)"
     )
     
-    if st.button("🔄 Process Documents", type="primary"):
-        if uploaded_files:
-            with st.spinner("Processing documents..."):
+    if uploaded_file:
+        st.success(f"✅ File ready: {uploaded_file.name} ({uploaded_file.size / 1024:.1f} KB)")
+        
+        if st.button("🔄 Process Document", type="primary"):
+            with st.spinner("Processing document..."):
                 try:
                     # Create directories
                     os.makedirs(RAW_DIR, exist_ok=True)
                     os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
                     
-                    all_chunks = []
-                    processed_names = []
+                    st.info(f"Processing: {uploaded_file.name}")
                     
-                    st.info(f"Found {len(uploaded_files)} file(s) to process...")
+                    # Check file size
+                    if uploaded_file.size > 10 * 1024 * 1024:
+                        st.error(f"❌ File too large (max 10MB)")
+                        st.stop()
                     
-                    for uploaded_file in uploaded_files:
-                        st.info(f"Processing: {uploaded_file.name} ({uploaded_file.size / 1024:.1f} KB)")
-                        
-                        # Check file size (limit to 10MB)
-                        if uploaded_file.size > 10 * 1024 * 1024:
-                            st.error(f"❌ {uploaded_file.name} is too large (max 10MB)")
-                            continue
-                        
-                        # Save file
-                        file_path = os.path.join(RAW_DIR, uploaded_file.name)
-                        with open(file_path, "wb") as f:
-                            f.write(uploaded_file.getbuffer())
-                        
-                        st.success(f"✅ Saved {uploaded_file.name}")
-                        
-                        # Process
-                        st.info(f"Extracting text from {uploaded_file.name}...")
-                        pages = load_pdf(file_path)
-                        st.success(f"✅ Extracted {len(pages)} pages")
-                        
-                        st.info("Chunking text...")
-                        chunks = chunk_pages(pages)
-                        st.success(f"✅ Created {len(chunks)} chunks")
-                        
-                        all_chunks.extend(chunks)
-                        processed_names.append(uploaded_file.name)
+                    # Save file
+                    file_path = os.path.join(RAW_DIR, uploaded_file.name)
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
                     
-                    if not all_chunks:
-                        st.error("No valid documents to process")
-                    else:
-                        # Embed
-                        st.info(f"Generating embeddings for {len(all_chunks)} chunks...")
-                        embedded_chunks = embed_chunks(all_chunks)
-                        st.success("✅ Embeddings generated")
-                        
-                        # Build index
-                        st.info("Building vector index...")
-                        vector_store = VectorStore()
-                        vector_store.add_chunks(embedded_chunks)
-                        vector_store.save_to_disk()
-                        st.success("✅ Vector index created")
-                        
-                        st.session_state.vector_store = vector_store
-                        st.session_state.processed_files = processed_names
-                        
-                        st.success(f"🎉 Successfully processed {len(processed_names)} document(s)!")
+                    st.success(f"✅ Saved")
+                    
+                    # Process
+                    st.info("Extracting text...")
+                    pages = load_pdf(file_path)
+                    st.success(f"✅ Extracted {len(pages)} pages")
+                    
+                    st.info("Chunking...")
+                    chunks = chunk_pages(pages)
+                    st.success(f"✅ Created {len(chunks)} chunks")
+                    
+                    # Embed
+                    st.info("Generating embeddings...")
+                    embedded_chunks = embed_chunks(chunks)
+                    st.success("✅ Embeddings done")
+                    
+                    # Build index
+                    st.info("Building index...")
+                    vector_store = VectorStore()
+                    vector_store.add_chunks(embedded_chunks)
+                    vector_store.save_to_disk()
+                    
+                    st.session_state.vector_store = vector_store
+                    st.session_state.processed_files = [uploaded_file.name]
+                    
+                    st.success(f"🎉 Ready to ask questions!")
                     
                 except Exception as e:
                     st.error(f"❌ Error: {str(e)}")
                     import traceback
                     st.error(f"Details: {traceback.format_exc()}")
-        else:
-            st.warning("Please upload at least one PDF")
+    else:
+        st.info("👆 Select a PDF file above")
     
     st.divider()
     
     if st.session_state.processed_files:
-        st.subheader("📚 Processed Documents")
+        st.subheader("📚 Processed Document")
         for doc in st.session_state.processed_files:
             st.text(f"• {doc}")
     
@@ -146,7 +136,7 @@ with st.sidebar:
 
 # Main chat area
 if st.session_state.vector_store is None:
-    st.info("👆 Upload and process documents to get started!")
+    st.info("👆 Upload and process a document to get started!")
 else:
     # Display chat history
     for message in st.session_state.chat_history:
@@ -158,7 +148,7 @@ else:
                         st.text(f"• {source['source']} (Page {source['page']}) - Relevance: {source['relevance']}")
     
     # Chat input
-    if question := st.chat_input("Ask a question..."):
+    if question := st.chat_input("Ask a question about your document..."):
         # Add user message
         st.session_state.chat_history.append({
             "role": "user",
@@ -197,4 +187,4 @@ else:
 
 
 st.divider()
-st.caption("Built with Streamlit | Powered by Groq + FAISS | Deployed on Cloud")
+st.caption("Built with Streamlit | Powered by Groq + FAISS | 100% Free")
