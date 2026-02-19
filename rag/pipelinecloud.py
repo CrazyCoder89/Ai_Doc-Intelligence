@@ -1,9 +1,12 @@
-# Cloud version using Anthropic Claude API instead of local Ollama
+# rag/pipelinecloud.py
+# Cloud version using Hugging Face Inference API (FREE)
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import TOP_K_RESULTS
+
 
 def build_context(retrieved_chunks: list) -> str:
     """Format retrieved chunks into context string"""
@@ -15,6 +18,7 @@ def build_context(retrieved_chunks: list) -> str:
         context_parts.append(f"Chunk {i} {source_info}:\n{chunk_text}\n")
     
     return "\n".join(context_parts)
+
 
 def create_prompt(question: str, context: str) -> str:
     """Create prompt for the LLM"""
@@ -37,60 +41,58 @@ ANSWER:"""
 
 
 def generate_answer(question: str, retrieved_chunks: list) -> dict:
-    """Generate answer using Claude API via direct HTTP request"""
+    """Generate answer using Hugging Face Inference API (FREE)"""
     import streamlit as st
     import requests
     
     print(f"\nGenerating answer for: '{question}'")
     
-    # Get API key
+    # Get API token
     try:
-        api_key = st.secrets["ANTHROPIC_API_KEY"]
+        api_token = st.secrets["HUGGINGFACE_API_TOKEN"]
     except:
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        api_token = os.getenv("HUGGINGFACE_API_TOKEN")
     
-    if not api_key:
-        raise ValueError("ANTHROPIC_API_KEY not found!")
+    if not api_token:
+        raise ValueError("HUGGINGFACE_API_TOKEN not found!")
     
     # Build context
     context = build_context(retrieved_chunks)
     prompt = create_prompt(question, context)
     
-    print("\n--- Calling Claude API ---")
+    print("\n--- Calling Hugging Face API ---")
     
-    # Direct HTTP request to Anthropic API
+    # Use Mistral-7B-Instruct via Hugging Face
+    API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+    
     headers = {
-        "x-api-key": api_key,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json"
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
     }
     
     payload = {
-        "model": "claude-3-5-sonnet-20241022",
-        "max_tokens": 1024,
-        "messages": [
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
+        "inputs": prompt,
+        "parameters": {
+            "max_new_tokens": 512,
+            "temperature": 0.2,
+            "return_full_text": False
+        }
     }
     
     try:
-        response = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers=headers,
-            json=payload,
-            timeout=30
-        )
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
         
-        # Print error details for debugging
         if response.status_code != 200:
             st.error(f"API Error: {response.status_code} - {response.text}")
             raise Exception(f"API returned {response.status_code}")
         
         result = response.json()
-        answer = result['content'][0]['text']
+        
+        # Handle different response formats
+        if isinstance(result, list) and len(result) > 0:
+            answer = result[0].get('generated_text', str(result))
+        else:
+            answer = str(result)
         
     except Exception as e:
         st.error(f"Error calling API: {str(e)}")
