@@ -60,31 +60,41 @@ def generate_answer(question: str, retrieved_chunks: list) -> dict:
     
     # Direct HTTP request to Anthropic API
     headers = {
-    "x-api-key": api_key,
-    "anthropic-version": "2023-06-01",
-    "content-type": "application/json",
-    "anthropic-dangerous-direct-browser-access": "true"
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json"
     }
     
     payload = {
         "model": "claude-3-5-sonnet-20241022",
         "max_tokens": 1024,
-        "temperature": 0.2,
         "messages": [
-            {"role": "user", "content": prompt}
+            {
+                "role": "user",
+                "content": prompt
+            }
         ]
     }
     
-    response = requests.post(
-        "https://api.anthropic.com/v1/messages",
-        headers=headers,
-        json=payload
-    )
-    
-    response.raise_for_status()
-    result = response.json()
-    
-    answer = result['content'][0]['text']
+    try:
+        response = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        # Print error details for debugging
+        if response.status_code != 200:
+            st.error(f"API Error: {response.status_code} - {response.text}")
+            raise Exception(f"API returned {response.status_code}")
+        
+        result = response.json()
+        answer = result['content'][0]['text']
+        
+    except Exception as e:
+        st.error(f"Error calling API: {str(e)}")
+        raise
     
     # Extract sources
     sources = []
