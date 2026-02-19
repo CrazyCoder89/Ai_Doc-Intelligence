@@ -1,26 +1,11 @@
-# rag/pipeline_cloud.py
+# rag/pipelinecloud.py
 # Cloud version using Anthropic Claude API instead of local Ollama
 
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from anthropic import Anthropic
 from config import TOP_K_RESULTS
-
-# Initialize Anthropic client
-# Get API key from Streamlit secrets or environment
-import streamlit as st
-
-try:
-    api_key = st.secrets["ANTHROPIC_API_KEY"]
-except:
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-
-if not api_key:
-    raise ValueError("ANTHROPIC_API_KEY not found in secrets or environment variables")
-
-client = Anthropic(api_key=api_key)
 
 
 def build_context(retrieved_chunks: list) -> str:
@@ -57,7 +42,22 @@ ANSWER:"""
 
 def generate_answer(question: str, retrieved_chunks: list) -> dict:
     """Generate answer using Claude API (cloud deployment)"""
+    import streamlit as st
+    from anthropic import Anthropic
+    
     print(f"\nGenerating answer for: '{question}'")
+    
+    # Get API key
+    try:
+        api_key = st.secrets["ANTHROPIC_API_KEY"]
+    except:
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+    
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY not found!")
+    
+    # Initialize client here (not at module level)
+    client = Anthropic(api_key=api_key)
     
     # Build context
     context = build_context(retrieved_chunks)
