@@ -60,9 +60,10 @@ def generate_answer(question: str, retrieved_chunks: list) -> dict:
     
     # Direct HTTP request to Anthropic API
     headers = {
-        "x-api-key": api_key,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json"
+    "x-api-key": api_key,
+    "anthropic-version": "2023-06-01",
+    "content-type": "application/json",
+    "anthropic-dangerous-direct-browser-access": "true"
     }
     
     payload = {
