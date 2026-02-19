@@ -1,12 +1,9 @@
-# rag/pipelinecloud.py
 # Cloud version using Anthropic Claude API instead of local Ollama
-
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import TOP_K_RESULTS
-
 
 def build_context(retrieved_chunks: list) -> str:
     """Format retrieved chunks into context string"""
@@ -18,7 +15,6 @@ def build_context(retrieved_chunks: list) -> str:
         context_parts.append(f"Chunk {i} {source_info}:\n{chunk_text}\n")
     
     return "\n".join(context_parts)
-
 
 def create_prompt(question: str, context: str) -> str:
     """Create prompt for the LLM"""
@@ -57,7 +53,12 @@ def generate_answer(question: str, retrieved_chunks: list) -> dict:
         raise ValueError("ANTHROPIC_API_KEY not found!")
     
     # Initialize client here (not at module level)
-    client = Anthropic(api_key=api_key)
+    # Initialize client with explicit parameters only
+    client = Anthropic(
+        api_key=api_key,
+        max_retries=2,
+        timeout=60.0
+    )
     
     # Build context
     context = build_context(retrieved_chunks)
