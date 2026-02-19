@@ -1,5 +1,5 @@
 # rag/pipelinecloud.py
-# Cloud version using Hugging Face Inference API (FREE)
+# Cloud version using Groq API (FREE & FAST)
 
 import sys
 import os
@@ -41,58 +41,55 @@ ANSWER:"""
 
 
 def generate_answer(question: str, retrieved_chunks: list) -> dict:
-    """Generate answer using Hugging Face Inference API (FREE)"""
+    """Generate answer using Groq API (FREE)"""
     import streamlit as st
     import requests
     
     print(f"\nGenerating answer for: '{question}'")
     
-    # Get API token
+    # Get API key
     try:
-        api_token = st.secrets["HUGGINGFACE_API_TOKEN"]
+        api_key = st.secrets["GROQ_API_KEY"]
     except:
-        api_token = os.getenv("HUGGINGFACE_API_TOKEN")
+        api_key = os.getenv("GROQ_API_KEY")
     
-    if not api_token:
-        raise ValueError("HUGGINGFACE_API_TOKEN not found!")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY not found!")
     
     # Build context
     context = build_context(retrieved_chunks)
     prompt = create_prompt(question, context)
     
-    print("\n--- Calling Hugging Face API ---")
-    
-    # Use Mixtral via Hugging Face
-    API_URL = "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1"
+    print("\n--- Calling Groq API ---")
     
     headers = {
-        "Authorization": f"Bearer {api_token}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     
     payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 512,
-            "temperature": 0.2,
-            "return_full_text": False
-        }
+        "model": "mixtral-8x7b-32768",
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.2,
+        "max_tokens": 1024
     }
     
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=60
+        )
         
         if response.status_code != 200:
             st.error(f"API Error: {response.status_code} - {response.text}")
             raise Exception(f"API returned {response.status_code}")
         
         result = response.json()
-        
-        # Handle different response formats
-        if isinstance(result, list) and len(result) > 0:
-            answer = result[0].get('generated_text', str(result))
-        else:
-            answer = str(result)
+        answer = result['choices'][0]['message']['content']
         
     except Exception as e:
         st.error(f"Error calling API: {str(e)}")

@@ -22,12 +22,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Check for API key
-if not os.getenv("HUGGINGFACE_API_TOKEN"):
+if not os.getenv("GROQ_API_KEY"):
     try:
-        _ = st.secrets["HUGGINGFACE_API_TOKEN"]
+        _ = st.secrets["GROQ_API_KEY"]
     except:
-        st.error("⚠️ HUGGINGFACE_API_TOKEN not found! Please add it to Streamlit secrets.")
+        st.error("⚠️ GROQ_API_KEY not found! Please add it to Streamlit secrets.")
         st.stop()
 
 # Title
